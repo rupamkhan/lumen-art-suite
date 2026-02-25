@@ -81,3 +81,50 @@
     background-clip: text;
   }
 }
+
+/* Animated gradient mesh */
+.mesh-gradient {
+  background: 
+    radial-gradient(ellipse at 20% 50%, hsl(217 91% 60% / 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, hsl(262 83% 58% / 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, hsl(217 91% 60% / 0.1) 0%, transparent 50%);
+  animation: mesh-shift 12s ease-in-out infinite alternate;
+}
+
+@keyframes mesh-shift {
+  0% { background-position: 0% 0%, 100% 0%, 50% 100%; }
+  100% { background-position: 100% 50%, 0% 100%, 80% 0%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-15px) scale(1.03); }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 10s ease-in-out infinite 2s;
+}
+
+/* Sidebar active accent bar */
+.sidebar-active-bar {
+  position: relative;
+}
+.sidebar-active-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, hsl(217 91% 60%), hsl(262 83% 58%));
+}

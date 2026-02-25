@@ -52,7 +52,7 @@ export function AppSidebar() {
                       to={item.url}
                       end={item.url === "/"}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                      activeClassName="bg-secondary text-foreground glow-blue"
+                      activeClassName="bg-secondary text-foreground glow-blue sidebar-active-bar"
                     >
                       <item.icon className="h-5 w-5 shrink-0" />
                       <span>{item.title}</span>

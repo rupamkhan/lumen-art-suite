@@ -34,10 +34,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border/50 bg-sidebar">
       <div className="flex items-center gap-2 px-4 py-5">
         <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center shrink-0">
-          <span className="text-sm font-bold text-primary-foreground">AI</span>
+          <span className="text-sm font-bold text-primary-foreground">OC</span>
         </div>
         {!collapsed && (
-          <span className="text-sm font-bold text-foreground tracking-tight">Creative Studio</span>
+          <span className="text-sm font-bold text-foreground tracking-tight">OmniCraft AI</span>
         )}
       </div>
 

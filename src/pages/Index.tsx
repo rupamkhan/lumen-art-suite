@@ -72,14 +72,14 @@ const Dashboard = () => {
         <div className="relative max-w-4xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-sm text-muted-foreground mb-2">
             <Sparkles className="h-4 w-4 text-neon-blue" />
-            AI-Powered Creative Suite
+            OmniCraft AI — Creative Suite
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.1]">
             Create. Enhance.{" "}
             <span className="gradient-text">Transform.</span>
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Your all-in-one workspace for AI image generation, voice enhancement, video color grading, and premium stock assets.
+            OmniCraft AI — your all-in-one workspace for AI image generation, voice enhancement, video color grading, and premium stock assets.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Button
@@ -265,7 +265,7 @@ const Dashboard = () => {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-neon-purple/10 rounded-full blur-[80px]" />
           <div className="relative z-10 space-y-4">
             <h2 className="text-2xl lg:text-3xl font-bold text-foreground">Ready to create something amazing?</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">Jump into the studio and let AI supercharge your creative workflow.</p>
+            <p className="text-muted-foreground max-w-md mx-auto">Jump into OmniCraft AI and let AI supercharge your creative workflow.</p>
             <Button
               size="lg"
               onClick={() => navigate("/image-studio")}

@@ -6,7 +6,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SettingsModal } from "@/components/SettingsModal";
 
 export function AppHeader() {
-  const [projectTitle, setProjectTitle] = useState("Untitled Project");
+  const [projectTitle, setProjectTitle] = useState("OmniCraft AI Project");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (

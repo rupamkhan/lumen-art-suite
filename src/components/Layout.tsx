@@ -1,6 +1,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppHeader } from "@/components/AppHeader";
+import { AIChatAssistant } from "@/components/AIChatAssistant";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ export function Layout({ children }: LayoutProps) {
           </main>
         </div>
       </div>
+      <AIChatAssistant />
     </SidebarProvider>
   );
 }

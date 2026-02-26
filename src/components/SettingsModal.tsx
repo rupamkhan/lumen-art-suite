@@ -18,7 +18,10 @@ interface SettingsModalProps {
 
 const apiKeyFields = [
   { key: "huggingface", label: "Hugging Face API Key", placeholder: "hf_..." },
+  { key: "gemini", label: "Gemini API Key", placeholder: "AIza..." },
   { key: "pexels", label: "Pexels API Key", placeholder: "Enter Pexels key" },
+  { key: "groq", label: "Groq API Key", placeholder: "gsk_..." },
+  { key: "cloudinary", label: "Cloudinary API Key", placeholder: "Enter key" },
   { key: "supabaseUrl", label: "Supabase URL", placeholder: "https://..." },
   { key: "supabaseKey", label: "Supabase Anon Key", placeholder: "eyJ..." },
 ];
@@ -40,7 +43,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass border-border/50 sm:max-w-md">
+      <DialogContent className="glass border-border/50 sm:max-w-md max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">API Key Settings</DialogTitle>
           <DialogDescription>

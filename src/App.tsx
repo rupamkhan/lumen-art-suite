@@ -9,6 +9,15 @@ import ImageStudio from "./pages/ImageStudio";
 import VideoStudio from "./pages/VideoStudio";
 import AudioStudio from "./pages/AudioStudio";
 import StockAssets from "./pages/StockAssets";
+import BackgroundRemover from "./pages/BackgroundRemover";
+import ImageUpscaler from "./pages/ImageUpscaler";
+import FaceSwap from "./pages/FaceSwap";
+import VideoGenerator from "./pages/VideoGenerator";
+import MusicGenerator from "./pages/MusicGenerator";
+import SongCreator from "./pages/SongCreator";
+import AutoSubtitles from "./pages/AutoSubtitles";
+import SfxSearch from "./pages/SfxSearch";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +35,15 @@ const App = () => (
             <Route path="/video-studio" element={<VideoStudio />} />
             <Route path="/audio-studio" element={<AudioStudio />} />
             <Route path="/stock-assets" element={<StockAssets />} />
+            <Route path="/bg-remover" element={<BackgroundRemover />} />
+            <Route path="/image-upscaler" element={<ImageUpscaler />} />
+            <Route path="/face-swap" element={<FaceSwap />} />
+            <Route path="/video-generator" element={<VideoGenerator />} />
+            <Route path="/music-generator" element={<MusicGenerator />} />
+            <Route path="/song-creator" element={<SongCreator />} />
+            <Route path="/auto-subtitles" element={<AutoSubtitles />} />
+            <Route path="/sfx-search" element={<SfxSearch />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

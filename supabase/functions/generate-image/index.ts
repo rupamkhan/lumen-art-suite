@@ -16,7 +16,7 @@ serve(async (req) => {
     const model = "stabilityai/stable-diffusion-xl-base-1.0";
     const fullPrompt = style ? `${prompt}, ${style} style` : prompt;
 
-    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    const response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${HF_KEY}`,
@@ -33,8 +33,12 @@ serve(async (req) => {
       });
     }
 
-    const imageBlob = await response.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBlob)));
+    const imageBlob = new Uint8Array(await response.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < imageBlob.length; i++) {
+      binary += String.fromCharCode(imageBlob[i]);
+    }
+    const base64 = btoa(binary);
     
     return new Response(JSON.stringify({ image: `data:image/png;base64,${base64}` }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

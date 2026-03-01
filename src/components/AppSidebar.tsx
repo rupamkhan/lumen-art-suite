@@ -13,6 +13,7 @@ import {
   Music2,
   Subtitles,
   Volume2,
+  Clock,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +32,10 @@ import {
 const navGroups = [
   {
     label: null,
-    items: [{ title: "Dashboard", url: "/", icon: LayoutDashboard }],
+    items: [
+      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "My Creations", url: "/my-creations", icon: Clock },
+    ],
   },
   {
     label: "IMAGE STUDIO",
@@ -77,7 +81,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50 bg-sidebar">
-      <div className="flex items-center gap-2 px-4 py-5">
+      <div className="flex items-center gap-2 px-4 py-5 cursor-pointer" onClick={() => navigate("/")}>
         <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center shrink-0">
           <span className="text-sm font-bold text-primary-foreground">OC</span>
         </div>

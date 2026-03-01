@@ -39,7 +39,7 @@ export default function ImageStudio() {
       setImages(results);
       toast.success(`${results.length} image(s) generated!`);
 
-      // Save to media library if logged in
+      // Save to media library AND user_history
       if (user && results.length > 0) {
         for (const img of results) {
           await supabase.from("media_library").insert({
@@ -50,10 +50,19 @@ export default function ImageStudio() {
             prompt,
             tool_used: "image-generator",
           });
+          await supabase.from("user_history").insert({
+            user_id: user.id,
+            tool_name: "image-generator",
+            prompt,
+            result_url: img,
+          });
         }
       }
     } catch (err: any) {
-      toast.error(err.message || "Generation failed. Check your API keys.");
+      console.error("Image generation error:", err);
+      toast.error("Something went wrong. Please try again in a moment.", {
+        description: "If this persists, check your API configuration in Settings.",
+      });
     } finally {
       setGenerating(false);
     }

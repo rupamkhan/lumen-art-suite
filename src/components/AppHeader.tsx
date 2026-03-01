@@ -1,13 +1,24 @@
 import { useState } from "react";
-import { Key, Download, Menu } from "lucide-react";
+import { Key, Download, LogOut, LogIn, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SettingsModal } from "@/components/SettingsModal";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export function AppHeader() {
   const [projectTitle, setProjectTitle] = useState("OmniCraft AI Project");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out");
+    navigate("/");
+  };
 
   return (
     <>
@@ -22,22 +33,27 @@ export function AppHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSettingsOpen(true)}
-            className="text-muted-foreground hover:text-foreground gap-2"
-          >
+          <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)} className="text-muted-foreground hover:text-foreground gap-2">
             <Key className="h-4 w-4" />
             <span className="hidden sm:inline">API Keys</span>
           </Button>
-          <Button
-            size="sm"
-            className="gradient-primary text-primary-foreground glow-gradient gap-2 border-0"
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export / Save</span>
-          </Button>
+          {user ? (
+            <>
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground px-2">
+                <User className="h-3.5 w-3.5" />
+                <span className="max-w-[120px] truncate">{user.email}</span>
+              </div>
+              <Button size="sm" variant="ghost" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground gap-1.5">
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => navigate("/auth")} className="gradient-primary text-primary-foreground border-0 glow-gradient gap-1.5">
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign In</span>
+            </Button>
+          )}
         </div>
       </header>
 

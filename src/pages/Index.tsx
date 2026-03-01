@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Image, Mic, Film, Search, Sparkles, ArrowRight, Zap, Eraser, ZoomIn, Users, Music, Music2, Subtitles, Volume2, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,13 +19,48 @@ const stats = [
   { label: "100% Free", value: "∞", icon: Play },
 ];
 
+const toolSections = [
+  {
+    label: "Image Studio",
+    tools: [
+      { title: "AI Image Generator", desc: "Generate stunning visuals from text prompts", icon: Image, route: "/image-studio", gradient: "from-neon-blue to-neon-purple" },
+      { title: "Background Remover", desc: "Remove backgrounds with one click", icon: Eraser, route: "/bg-remover", gradient: "from-pink-500 to-rose-500" },
+      { title: "Image Upscaler 4K", desc: "Enhance low-res images to 4K quality", icon: ZoomIn, route: "/image-upscaler", gradient: "from-cyan-500 to-neon-blue" },
+      { title: "Face Swap", desc: "Swap faces between two photos seamlessly", icon: Users, route: "/face-swap", gradient: "from-violet-500 to-neon-purple" },
+    ],
+  },
+  {
+    label: "Video & Motion",
+    tools: [
+      { title: "AI Video Generator", desc: "Create videos from text descriptions", icon: Sparkles, route: "/video-generator", gradient: "from-emerald-500 to-teal-500" },
+      { title: "Video Color Grading", desc: "Professional color grading with AI presets", icon: Film, route: "/video-studio", gradient: "from-emerald-500 to-neon-blue" },
+    ],
+  },
+  {
+    label: "Audio & Music",
+    tools: [
+      { title: "AI Music Generator", desc: "Generate background music from prompts", icon: Music, route: "/music-generator", gradient: "from-orange-500 to-amber-500" },
+      { title: "Full Song Creator", desc: "Create complete songs with lyrics & music", icon: Music2, route: "/song-creator", gradient: "from-red-500 to-pink-500" },
+      { title: "Voice Enhancement", desc: "Crystal-clear AI speech enhancement", icon: Mic, route: "/audio-studio", gradient: "from-neon-purple to-pink-500" },
+    ],
+  },
+  {
+    label: "Editing & Assets",
+    tools: [
+      { title: "Auto Subtitles", desc: "Generate accurate subtitles with AI", icon: Subtitles, route: "/auto-subtitles", gradient: "from-sky-500 to-indigo-500" },
+      { title: "Stock Footage", desc: "Browse HD & 4K stock footage and images", icon: Search, route: "/stock-assets", gradient: "from-amber-500 to-rose-500" },
+      { title: "SFX Search", desc: "Find and preview sound effects", icon: Volume2, route: "/sfx-search", gradient: "from-lime-500 to-emerald-500" },
+    ],
+  },
+];
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
   const handleGetStarted = () => {
     if (loading) return;
-    navigate(user ? "/" : "/auth");
+    navigate(user ? "/image-studio" : "/auth");
   };
 
   // If user is logged in, show the dashboard
@@ -127,45 +163,6 @@ export default function LandingPage() {
     </div>
   );
 }
-
-// Dashboard component shown when user is logged in
-import { Folder } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-
-const toolSections = [
-  {
-    label: "Image Studio",
-    tools: [
-      { title: "AI Image Generator", desc: "Generate stunning visuals from text prompts", icon: Image, route: "/image-studio", gradient: "from-neon-blue to-neon-purple" },
-      { title: "Background Remover", desc: "Remove backgrounds with one click", icon: Eraser, route: "/bg-remover", gradient: "from-pink-500 to-rose-500" },
-      { title: "Image Upscaler 4K", desc: "Enhance low-res images to 4K quality", icon: ZoomIn, route: "/image-upscaler", gradient: "from-cyan-500 to-neon-blue" },
-      { title: "Face Swap", desc: "Swap faces between two photos seamlessly", icon: Users, route: "/face-swap", gradient: "from-violet-500 to-neon-purple" },
-    ],
-  },
-  {
-    label: "Video & Motion",
-    tools: [
-      { title: "AI Video Generator", desc: "Create videos from text descriptions", icon: Sparkles, route: "/video-generator", gradient: "from-emerald-500 to-teal-500" },
-      { title: "Video Color Grading", desc: "Professional color grading with AI presets", icon: Film, route: "/video-studio", gradient: "from-emerald-500 to-neon-blue" },
-    ],
-  },
-  {
-    label: "Audio & Music",
-    tools: [
-      { title: "AI Music Generator", desc: "Generate background music from prompts", icon: Music, route: "/music-generator", gradient: "from-orange-500 to-amber-500" },
-      { title: "Full Song Creator", desc: "Create complete songs with lyrics & music", icon: Music2, route: "/song-creator", gradient: "from-red-500 to-pink-500" },
-      { title: "Voice Enhancement", desc: "Crystal-clear AI speech enhancement", icon: Mic, route: "/audio-studio", gradient: "from-neon-purple to-pink-500" },
-    ],
-  },
-  {
-    label: "Editing & Assets",
-    tools: [
-      { title: "Auto Subtitles", desc: "Generate accurate subtitles with AI", icon: Subtitles, route: "/auto-subtitles", gradient: "from-sky-500 to-indigo-500" },
-      { title: "Stock Footage", desc: "Browse HD & 4K stock footage and images", icon: Search, route: "/stock-assets", gradient: "from-amber-500 to-rose-500" },
-      { title: "SFX Search", desc: "Find and preview sound effects", icon: Volume2, route: "/sfx-search", gradient: "from-lime-500 to-emerald-500" },
-    ],
-  },
-];
 
 function Dashboard() {
   const navigate = useNavigate();

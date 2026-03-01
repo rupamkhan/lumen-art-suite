@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AuthProvider } from "@/hooks/useAuth";
-import Dashboard from "./pages/Index";
+import LandingPage from "./pages/Index";
 import ImageStudio from "./pages/ImageStudio";
 import VideoStudio from "./pages/VideoStudio";
 import AudioStudio from "./pages/AudioStudio";
@@ -19,6 +19,7 @@ import SongCreator from "./pages/SongCreator";
 import AutoSubtitles from "./pages/AutoSubtitles";
 import SfxSearch from "./pages/SfxSearch";
 import Settings from "./pages/Settings";
+import MyCreations from "./pages/MyCreations";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -33,7 +34,7 @@ const App = () => (
         <BrowserRouter>
           <Layout>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/image-studio" element={<ImageStudio />} />
               <Route path="/video-studio" element={<VideoStudio />} />
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/auto-subtitles" element={<AutoSubtitles />} />
               <Route path="/sfx-search" element={<SfxSearch />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/my-creations" element={<MyCreations />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

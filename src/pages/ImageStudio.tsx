@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { uploadToCloudinary, saveToHistory, saveToMediaLibrary } from "@/lib/cloudinary";
 
 export default function ImageStudio() {
   const [prompt, setPrompt] = useState("");
@@ -39,23 +40,12 @@ export default function ImageStudio() {
       setImages(results);
       toast.success(`${results.length} image(s) generated!`);
 
-      // Save to media library AND user_history
       if (user && results.length > 0) {
         for (const img of results) {
-          await supabase.from("media_library").insert({
-            user_id: user.id,
-            title: prompt.slice(0, 50),
-            media_type: "image",
-            url: img,
-            prompt,
-            tool_used: "image-generator",
-          });
-          await supabase.from("user_history").insert({
-            user_id: user.id,
-            tool_name: "image-generator",
-            prompt,
-            result_url: img,
-          });
+          const cloudUrl = await uploadToCloudinary(img, "omnicraft/images");
+          const finalUrl = cloudUrl || img;
+          await saveToMediaLibrary(user.id, prompt.slice(0, 50), "image", finalUrl, prompt, "image-generator");
+          await saveToHistory(user.id, "image-generator", prompt, finalUrl);
         }
       }
     } catch (err: any) {
@@ -87,9 +77,7 @@ export default function ImageStudio() {
           />
           <div className="flex flex-wrap items-center gap-3">
             <Select value={aspectRatio} onValueChange={setAspectRatio}>
-              <SelectTrigger className="w-32 bg-secondary/50 border-border/50">
-                <SelectValue placeholder="Aspect Ratio" />
-              </SelectTrigger>
+              <SelectTrigger className="w-32 bg-secondary/50 border-border/50"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="1:1">1:1</SelectItem>
                 <SelectItem value="16:9">16:9</SelectItem>
@@ -98,9 +86,7 @@ export default function ImageStudio() {
               </SelectContent>
             </Select>
             <Select value={style} onValueChange={setStyle}>
-              <SelectTrigger className="w-40 bg-secondary/50 border-border/50">
-                <SelectValue placeholder="Style" />
-              </SelectTrigger>
+              <SelectTrigger className="w-40 bg-secondary/50 border-border/50"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="photorealistic">Photorealistic</SelectItem>
                 <SelectItem value="anime">Anime</SelectItem>
@@ -108,11 +94,7 @@ export default function ImageStudio() {
                 <SelectItem value="oil-painting">Oil Painting</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              onClick={handleGenerate}
-              disabled={generating}
-              className="gradient-primary text-primary-foreground border-0 glow-gradient gap-2 ml-auto"
-            >
+            <Button onClick={handleGenerate} disabled={generating} className="gradient-primary text-primary-foreground border-0 glow-gradient gap-2 ml-auto">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {generating ? "Generating..." : "Generate"}
             </Button>
@@ -175,14 +157,6 @@ export default function ImageStudio() {
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Number of Images: {numImages[0]}</label>
             <Slider value={numImages} onValueChange={setNumImages} min={1} max={4} step={1} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Seed (optional)</label>
-            <input
-              type="number"
-              placeholder="Random"
-              className="w-full bg-secondary/50 border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
-            />
           </div>
         </div>
       </aside>

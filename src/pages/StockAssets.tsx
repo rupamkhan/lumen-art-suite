@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Search, Download, Loader2 } from "lucide-react";
+import { Search, Download, Loader2, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { saveToHistory, saveToMediaLibrary } from "@/lib/cloudinary";
 
 interface StockResult {
   id: number;
@@ -23,6 +25,7 @@ export default function StockAssets() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<StockResult[]>([]);
+  const { user } = useAuth();
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -39,14 +42,25 @@ export default function StockAssets() {
       setResults(data?.results || []);
       if (!data?.results?.length) toast.info("No results found. Try a different search term.");
     } catch (err: any) {
-      toast.error(err.message || "Search failed");
+      toast.error(err.message || "Search failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const saveAsset = async (asset: StockResult) => {
+    if (!user) return toast.error("Sign in to save assets");
+    try {
+      await saveToMediaLibrary(user.id, `Stock: ${query}`, asset.type, asset.url, query, "stock-search");
+      await saveToHistory(user.id, "stock-search", query, asset.thumbnail);
+      toast.success("Saved to your library!");
+    } catch {
+      toast.error("Failed to save");
+    }
+  };
+
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
       <div className="flex justify-center">
         <div className="relative w-full max-w-2xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -87,25 +101,20 @@ export default function StockAssets() {
       {results.length > 0 && !loading && (
         <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 space-y-4">
           {results.map((asset) => (
-            <div
-              key={asset.id}
-              className="w-full rounded-xl relative group overflow-hidden cursor-pointer break-inside-avoid border border-border/50"
-            >
-              <img
-                src={asset.thumbnail}
-                alt={`Stock ${asset.type}`}
-                className="w-full object-cover rounded-xl"
-                loading="lazy"
-              />
+            <div key={asset.id} className="w-full rounded-xl relative group overflow-hidden cursor-pointer break-inside-avoid border border-border/50">
+              <img src={asset.thumbnail} alt={`Stock ${asset.type}`} className="w-full object-cover rounded-xl" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
-                <span className="text-xs font-medium bg-secondary/80 px-2 py-0.5 rounded text-foreground">
-                  {asset.photographer}
-                </span>
-                <a href={asset.url} target="_blank" rel="noopener noreferrer">
-                  <Button size="icon" variant="ghost" className="h-8 w-8 glass text-foreground">
-                    <Download className="h-4 w-4" />
+                <span className="text-xs font-medium bg-secondary/80 px-2 py-0.5 rounded text-foreground">{asset.photographer}</span>
+                <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-8 w-8 glass text-foreground" onClick={() => saveAsset(asset)} title="Save to library">
+                    <Save className="h-4 w-4" />
                   </Button>
-                </a>
+                  <a href={asset.url} target="_blank" rel="noopener noreferrer">
+                    <Button size="icon" variant="ghost" className="h-8 w-8 glass text-foreground">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </a>
+                </div>
               </div>
             </div>
           ))}

@@ -8,3 +8,21 @@ verify_jwt = false
 
 [functions.search-stock]
 verify_jwt = false
+
+[functions.upload-cloudinary]
+verify_jwt = false
+
+[functions.remove-background]
+verify_jwt = false
+
+[functions.upscale-image]
+verify_jwt = false
+
+[functions.generate-music]
+verify_jwt = false
+
+[functions.generate-video]
+verify_jwt = false
+
+[functions.generate-script]
+verify_jwt = false

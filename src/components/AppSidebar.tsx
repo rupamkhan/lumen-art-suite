@@ -14,9 +14,13 @@ import {
   Subtitles,
   Volume2,
   Clock,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import {
   Sidebar,
   SidebarContent,
@@ -33,7 +37,7 @@ const navGroups = [
   {
     label: null,
     items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "My Creations", url: "/my-creations", icon: Clock },
     ],
   },
@@ -78,10 +82,20 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "";
+  const initials = displayName ? displayName.slice(0, 2).toUpperCase() : "?";
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out");
+    navigate("/");
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50 bg-sidebar">
-      <div className="flex items-center gap-2 px-4 py-5 cursor-pointer" onClick={() => navigate("/")}>
+      <div className="flex items-center gap-2 px-4 py-5 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
         <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center shrink-0">
           <span className="text-sm font-bold text-primary-foreground">OC</span>
         </div>
@@ -105,7 +119,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild tooltip={item.title}>
                       <NavLink
                         to={item.url}
-                        end={item.url === "/"}
+                        end={item.url === "/dashboard"}
                         className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground text-sm"
                         activeClassName="bg-secondary text-foreground glow-blue sidebar-active-bar"
                       >
@@ -121,21 +135,62 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <div className="mt-auto p-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Settings">
-              <NavLink
-                to="/settings"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground w-full text-sm"
-                activeClassName="bg-secondary text-foreground glow-blue sidebar-active-bar"
-              >
-                <Settings className="h-4 w-4 shrink-0" />
-                <span>Settings</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      {/* User profile section at bottom */}
+      <div className="mt-auto border-t border-border/50">
+        {user ? (
+          <div className={`p-3 ${collapsed ? "flex flex-col items-center gap-2" : "space-y-2"}`}>
+            <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"}`}>
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {!collapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+                </div>
+              )}
+            </div>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Log Out" onClick={handleSignOut} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-3 px-3">
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span>Log Out</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Settings">
+                  <NavLink
+                    to="/settings"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground w-full text-sm"
+                    activeClassName="bg-secondary text-foreground glow-blue sidebar-active-bar"
+                  >
+                    <Settings className="h-4 w-4 shrink-0" />
+                    <span>Settings</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </div>
+        ) : (
+          <div className="p-3">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Settings">
+                  <NavLink
+                    to="/settings"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground w-full text-sm"
+                    activeClassName="bg-secondary text-foreground glow-blue sidebar-active-bar"
+                  >
+                    <Settings className="h-4 w-4 shrink-0" />
+                    <span>Settings</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </div>
+        )}
       </div>
     </Sidebar>
   );

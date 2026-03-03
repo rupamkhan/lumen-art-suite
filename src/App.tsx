@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LandingPage from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import ImageStudio from "./pages/ImageStudio";
 import VideoStudio from "./pages/VideoStudio";
 import AudioStudio from "./pages/AudioStudio";
@@ -36,20 +38,21 @@ const App = () => (
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/image-studio" element={<ImageStudio />} />
-              <Route path="/video-studio" element={<VideoStudio />} />
-              <Route path="/audio-studio" element={<AudioStudio />} />
-              <Route path="/stock-assets" element={<StockAssets />} />
-              <Route path="/bg-remover" element={<BackgroundRemover />} />
-              <Route path="/image-upscaler" element={<ImageUpscaler />} />
-              <Route path="/face-swap" element={<FaceSwap />} />
-              <Route path="/video-generator" element={<VideoGenerator />} />
-              <Route path="/music-generator" element={<MusicGenerator />} />
-              <Route path="/song-creator" element={<SongCreator />} />
-              <Route path="/auto-subtitles" element={<AutoSubtitles />} />
-              <Route path="/sfx-search" element={<SfxSearch />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/my-creations" element={<MyCreations />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/image-studio" element={<ProtectedRoute><ImageStudio /></ProtectedRoute>} />
+              <Route path="/video-studio" element={<ProtectedRoute><VideoStudio /></ProtectedRoute>} />
+              <Route path="/audio-studio" element={<ProtectedRoute><AudioStudio /></ProtectedRoute>} />
+              <Route path="/stock-assets" element={<ProtectedRoute><StockAssets /></ProtectedRoute>} />
+              <Route path="/bg-remover" element={<ProtectedRoute><BackgroundRemover /></ProtectedRoute>} />
+              <Route path="/image-upscaler" element={<ProtectedRoute><ImageUpscaler /></ProtectedRoute>} />
+              <Route path="/face-swap" element={<ProtectedRoute><FaceSwap /></ProtectedRoute>} />
+              <Route path="/video-generator" element={<ProtectedRoute><VideoGenerator /></ProtectedRoute>} />
+              <Route path="/music-generator" element={<ProtectedRoute><MusicGenerator /></ProtectedRoute>} />
+              <Route path="/song-creator" element={<ProtectedRoute><SongCreator /></ProtectedRoute>} />
+              <Route path="/auto-subtitles" element={<ProtectedRoute><AutoSubtitles /></ProtectedRoute>} />
+              <Route path="/sfx-search" element={<ProtectedRoute><SfxSearch /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/my-creations" element={<ProtectedRoute><MyCreations /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

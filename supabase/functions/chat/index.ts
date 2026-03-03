@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,9 +10,27 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Auth check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { messages, provider } = await req.json();
-    
-    // Use Groq for fast responses, Gemini for script writing
+
     if (provider === "gemini") {
       const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
       if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY not configured");
@@ -36,9 +55,8 @@ serve(async (req) => {
       );
 
       if (!response.ok) {
-        const err = await response.text();
-        console.error("Gemini error:", response.status, err);
-        throw new Error(`Gemini API error: ${response.status}`);
+        console.error("Gemini error:", response.status, await response.text());
+        throw new Error("AI service temporarily unavailable");
       }
 
       const data = await response.json();
@@ -47,7 +65,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
-      // Default: Groq (fast)
       const GROQ_KEY = Deno.env.get("GROQ_API_KEY");
       if (!GROQ_KEY) throw new Error("GROQ_API_KEY not configured");
 
@@ -60,7 +77,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "llama-3.3-70b-versatile",
           messages: [
-            { role: "system", content: "You are an expert creative AI assistant for OmniCraft AI Studio. Help users with image prompts, video scripts, music ideas, and creative workflows. Be concise, friendly, and helpful. Use emojis sparingly." },
+            { role: "system", content: "You are an expert creative AI assistant for OmniCraft AI Studio. Help users with image prompts, video scripts, music ideas, and creative workflows. Be concise, friendly, and helpful." },
             ...messages,
           ],
           max_tokens: 1024,
@@ -68,9 +85,8 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
-        const err = await response.text();
-        console.error("Groq error:", response.status, err);
-        throw new Error(`Groq API error: ${response.status}`);
+        console.error("Groq error:", response.status, await response.text());
+        throw new Error("AI service temporarily unavailable");
       }
 
       const data = await response.json();
@@ -81,7 +97,7 @@ serve(async (req) => {
     }
   } catch (e) {
     console.error("chat error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Service temporarily unavailable" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

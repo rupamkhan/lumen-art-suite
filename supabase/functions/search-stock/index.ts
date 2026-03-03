@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,22 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await sb.auth.getUser();
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { query, type, page } = await req.json();
     const PEXELS_KEY = Deno.env.get("PEXELS_API_KEY");
     if (!PEXELS_KEY) throw new Error("PEXELS_API_KEY not configured");
@@ -21,18 +38,13 @@ serve(async (req) => {
         `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${pageNum}`,
         { headers: { Authorization: PEXELS_KEY } }
       );
-      if (!response.ok) throw new Error(`Pexels error: ${response.status}`);
+      if (!response.ok) throw new Error("Stock search failed");
       const data = await response.json();
-      
+
       const results = data.videos?.map((v: any) => ({
-        id: v.id,
-        type: "video",
-        width: v.width,
-        height: v.height,
-        duration: v.duration,
-        thumbnail: v.image,
-        url: v.video_files?.[0]?.link,
-        photographer: v.user?.name,
+        id: v.id, type: "video", width: v.width, height: v.height,
+        duration: v.duration, thumbnail: v.image,
+        url: v.video_files?.[0]?.link, photographer: v.user?.name,
       })) || [];
 
       return new Response(JSON.stringify({ results, total: data.total_results }), {
@@ -43,16 +55,12 @@ serve(async (req) => {
         `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${pageNum}`,
         { headers: { Authorization: PEXELS_KEY } }
       );
-      if (!response.ok) throw new Error(`Pexels error: ${response.status}`);
+      if (!response.ok) throw new Error("Stock search failed");
       const data = await response.json();
-      
+
       const results = data.photos?.map((p: any) => ({
-        id: p.id,
-        type: "image",
-        width: p.width,
-        height: p.height,
-        thumbnail: p.src?.medium,
-        url: p.src?.original,
+        id: p.id, type: "image", width: p.width, height: p.height,
+        thumbnail: p.src?.medium, url: p.src?.original,
         photographer: p.photographer,
       })) || [];
 
@@ -62,7 +70,7 @@ serve(async (req) => {
     }
   } catch (e) {
     console.error("search-stock error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Service temporarily unavailable" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

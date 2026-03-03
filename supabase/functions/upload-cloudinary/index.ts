@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,20 +10,35 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await sb.auth.getUser();
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { base64Data, folder, resourceType } = await req.json();
-    
+
     const CLOUD_NAME = Deno.env.get("CLOUDINARY_CLOUD_NAME");
     const API_KEY = Deno.env.get("CLOUDINARY_API_KEY");
     const API_SECRET = Deno.env.get("CLOUDINARY_API_SECRET");
-    
+
     if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
       throw new Error("Cloudinary credentials not configured");
     }
 
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const paramsToSign = `folder=${folder || "omnicraft"}&timestamp=${timestamp}`;
-    
-    // Generate SHA1 signature
+
     const encoder = new TextEncoder();
     const data = encoder.encode(paramsToSign + API_SECRET);
     const hashBuffer = await crypto.subtle.digest("SHA-1", data);
@@ -43,13 +59,12 @@ serve(async (req) => {
     );
 
     if (!uploadRes.ok) {
-      const err = await uploadRes.text();
-      console.error("Cloudinary error:", err);
-      throw new Error("Cloudinary upload failed");
+      console.error("Cloudinary error:", await uploadRes.text());
+      throw new Error("Upload failed");
     }
 
     const result = await uploadRes.json();
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       url: result.secure_url,
       public_id: result.public_id,
       format: result.format,
@@ -58,7 +73,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("upload-cloudinary error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Service temporarily unavailable" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

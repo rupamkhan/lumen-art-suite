@@ -17,7 +17,7 @@ export default function Auth() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) navigate("/");
+    if (user) navigate("/dashboard");
   }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,7 +32,7 @@ export default function Auth() {
           password,
           options: {
             data: { display_name: displayName || email.split("@")[0] },
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/dashboard`,
           },
         });
         if (error) throw error;
@@ -41,7 +41,7 @@ export default function Auth() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (err: any) {
       toast.error(err.message || "Authentication failed");
@@ -54,7 +54,7 @@ export default function Auth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/dashboard`,
       },
     });
     if (error) toast.error(error.message);
@@ -76,7 +76,6 @@ export default function Auth() {
         </div>
 
         <div className="glass rounded-2xl p-6 space-y-4">
-          {/* Google OAuth */}
           <Button
             type="button"
             variant="outline"

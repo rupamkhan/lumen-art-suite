@@ -1,82 +1,151 @@
 import { useState } from "react";
-import { Search, Play, Pause, Download, Volume2 } from "lucide-react";
+import { Search, Play, Pause, Download, Volume2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { saveToHistory } from "@/lib/cloudinary";
 
-const mockSfx = [
-  { id: 1, name: "Whoosh Transition", duration: "0:02", category: "Transition" },
-  { id: 2, name: "UI Click", duration: "0:01", category: "Interface" },
-  { id: 3, name: "Cinematic Boom", duration: "0:03", category: "Impact" },
-  { id: 4, name: "Notification Chime", duration: "0:01", category: "Alert" },
-  { id: 5, name: "Thunder Rumble", duration: "0:04", category: "Nature" },
-  { id: 6, name: "Laser Beam", duration: "0:02", category: "Sci-Fi" },
-  { id: 7, name: "Glass Break", duration: "0:02", category: "Impact" },
-  { id: 8, name: "Rain Ambience", duration: "0:10", category: "Nature" },
-  { id: 9, name: "Keyboard Typing", duration: "0:03", category: "Interface" },
-  { id: 10, name: "Door Slam", duration: "0:01", category: "Foley" },
-];
+interface SfxResult {
+  id: number;
+  name: string;
+  duration: string;
+  category: string;
+  previewUrl: string;
+  downloadUrl: string;
+}
 
 export default function SfxSearch() {
   const [query, setQuery] = useState("");
   const [playingId, setPlayingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<SfxResult[]>([]);
+  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
+  const { user } = useAuth();
 
-  const filtered = query ? mockSfx.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()) || s.category.toLowerCase().includes(query.toLowerCase())) : mockSfx;
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setResults([]);
+    stopAudio();
+
+    try {
+      const { data, error } = await supabase.functions.invoke("search-stock", {
+        body: { query, type: "sfx", page: 1 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const sfxResults: SfxResult[] = (data?.results || []).map((r: any) => ({
+        id: r.id,
+        name: r.photographer || query,
+        duration: r.duration ? `${r.duration}s` : "—",
+        category: "SFX",
+        previewUrl: r.thumbnail || r.url,
+        downloadUrl: r.url,
+      }));
+
+      setResults(sfxResults);
+      if (sfxResults.length === 0) toast.info("No sound effects found. Try a different term.");
+    } catch (err: any) {
+      toast.error("Search failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopAudio = () => {
+    if (audioEl) {
+      audioEl.pause();
+      audioEl.src = "";
+    }
+    setPlayingId(null);
+  };
+
+  const togglePlay = (sfx: SfxResult) => {
+    if (playingId === sfx.id) {
+      stopAudio();
+      return;
+    }
+    stopAudio();
+    const audio = new Audio(sfx.previewUrl);
+    audio.onended = () => setPlayingId(null);
+    audio.play().catch(() => toast.error("Cannot play this audio"));
+    setAudioEl(audio);
+    setPlayingId(sfx.id);
+  };
+
+  const handleDownload = async (sfx: SfxResult) => {
+    window.open(sfx.downloadUrl, "_blank");
+    if (user) {
+      await saveToHistory(user.id, "sfx-search", `SFX: ${query}`, sfx.downloadUrl);
+    }
+    toast.success("Download started!");
+  };
 
   return (
     <div className="flex flex-col h-full animate-fade-in">
       <div className="flex-1 p-6 space-y-6 overflow-auto">
-        {/* Search */}
         <div className="relative max-w-2xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="Search sound effects... e.g., 'whoosh', 'click', 'explosion'"
             className="w-full bg-secondary/50 border border-border/50 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
 
-        {/* Results */}
-        <div className="space-y-2">
-          {filtered.map((sfx) => (
-            <div key={sfx.id} className="glass rounded-xl p-4 flex items-center gap-4 group hover:border-primary/50 transition-colors">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10 shrink-0 glass"
-                onClick={() => setPlayingId(playingId === sfx.id ? null : sfx.id)}
-              >
-                {playingId === sfx.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-              </Button>
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
 
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{sfx.name}</p>
-                <p className="text-xs text-muted-foreground">{sfx.category} · {sfx.duration}</p>
+        {!loading && results.length > 0 && (
+          <div className="space-y-2">
+            {results.map((sfx) => (
+              <div key={sfx.id} className="glass rounded-xl p-4 flex items-center gap-4 group hover:border-primary/50 transition-colors">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-10 w-10 shrink-0 glass"
+                  onClick={() => togglePlay(sfx)}
+                >
+                  {playingId === sfx.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                </Button>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{sfx.name}</p>
+                  <p className="text-xs text-muted-foreground">{sfx.category} · {sfx.duration}</p>
+                </div>
+
+                <div className="hidden sm:flex items-end gap-[1px] h-8 flex-1 max-w-[200px]">
+                  {Array.from({ length: 40 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-0.5 rounded-full ${playingId === sfx.id ? "gradient-primary" : "bg-muted-foreground/30"}`}
+                      style={{ height: `${Math.sin(i * 0.3) * 40 + 50}%` }}
+                    />
+                  ))}
+                </div>
+
+                <Button variant="outline" size="sm" className="gap-1 border-border/50 shrink-0" onClick={() => handleDownload(sfx)}>
+                  <Download className="h-3 w-3" /> Download
+                </Button>
               </div>
+            ))}
+          </div>
+        )}
 
-              {/* Mini waveform */}
-              <div className="hidden sm:flex items-end gap-[1px] h-8 flex-1 max-w-[200px]">
-                {Array.from({ length: 40 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-0.5 rounded-full ${playingId === sfx.id ? "gradient-primary" : "bg-muted-foreground/30"}`}
-                    style={{ height: `${Math.random() * 80 + 20}%` }}
-                  />
-                ))}
-              </div>
-
-              <Button variant="outline" size="sm" className="gap-1 border-border/50 shrink-0">
-                <Download className="h-3 w-3" /> Download
-              </Button>
-            </div>
-          ))}
-
-          {filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Volume2 className="h-12 w-12 text-muted-foreground/30 mb-3" />
-              <p className="text-muted-foreground">No sound effects found for "{query}"</p>
-            </div>
-          )}
-        </div>
+        {!loading && results.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Volume2 className="h-12 w-12 text-muted-foreground/30 mb-3" />
+            <p className="text-muted-foreground">Search for sound effects from Pexels video library</p>
+            <p className="text-xs text-muted-foreground mt-1">Type a keyword and press Enter</p>
+          </div>
+        )}
       </div>
     </div>
   );

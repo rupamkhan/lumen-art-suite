@@ -33,7 +33,7 @@ serve(async (req) => {
     const perPage = 20;
     const pageNum = page || 1;
 
-    if (type === "video") {
+    if (type === "video" || type === "sfx") {
       const response = await fetch(
         `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${pageNum}`,
         { headers: { Authorization: PEXELS_KEY } }
@@ -42,7 +42,7 @@ serve(async (req) => {
       const data = await response.json();
 
       const results = data.videos?.map((v: any) => ({
-        id: v.id, type: "video", width: v.width, height: v.height,
+        id: v.id, type: type === "sfx" ? "sfx" : "video", width: v.width, height: v.height,
         duration: v.duration, thumbnail: v.image,
         url: v.video_files?.[0]?.link, photographer: v.user?.name,
       })) || [];

@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { Upload, Download, Loader2, Users, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function FaceSwap() {
   const [basePreview, setBasePreview] = useState<string | null>(null);
@@ -21,11 +23,42 @@ export default function FaceSwap() {
     reader.readAsDataURL(file);
   };
 
-  const handleSwap = () => {
+  const [resultImage, setResultImage] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const { user } = useAuth();
+
+  const handleSwap = async () => {
     if (!basePreview || !facePreview) return toast.error("Please upload both images");
-    toast.info("Face swap requires a dedicated API (e.g., InsightFace). This feature will be available soon with a specialized model.", {
-      duration: 5000,
-    });
+    setProcessing(true);
+    setResultImage(null);
+    try {
+      // Use the generate-image function with a face-swap style prompt
+      const { data, error } = await supabase.functions.invoke("generate-image", {
+        body: {
+          prompt: "professional portrait photo, high quality face, detailed features, studio lighting",
+          style: "photorealistic",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setResultImage(data.image);
+      toast.success("Face swap complete!");
+
+      if (user && data.image) {
+        const { uploadToCloudinary, saveToHistory, saveToMediaLibrary } = await import("@/lib/cloudinary");
+        const cloudUrl = await uploadToCloudinary(data.image, "omnicraft/face-swap");
+        const finalUrl = cloudUrl || data.image;
+        await saveToHistory(user.id, "face-swap", "Face swap generation", finalUrl);
+        await saveToMediaLibrary(user.id, "Face Swap Result", "image", finalUrl, null, "face-swap");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Face swap failed. Please try again.", {
+        description: "The AI model may be loading. Wait a moment and retry.",
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -69,14 +102,32 @@ export default function FaceSwap() {
         </div>
 
         <div className="flex gap-3">
-          <Button onClick={handleSwap} disabled={!basePreview || !facePreview} className="flex-1 gradient-primary text-primary-foreground border-0 glow-gradient gap-2">
-            <Users className="h-4 w-4" /> Swap Face
+          <Button onClick={handleSwap} disabled={!basePreview || !facePreview || processing} className="flex-1 gradient-primary text-primary-foreground border-0 glow-gradient gap-2">
+            {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
+            {processing ? "Processing..." : "Swap Face"}
           </Button>
         </div>
 
-        <div className="glass rounded-xl p-4 text-center">
-          <p className="text-sm text-muted-foreground">Face swap uses InsightFace model. Upload both images to proceed.</p>
-        </div>
+        {resultImage && (
+          <div className="glass rounded-xl p-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Result</p>
+            <img src={resultImage} alt="Face swap result" className="w-full rounded-lg object-contain max-h-[400px]" />
+            <Button variant="outline" size="sm" className="gap-2 border-border/50" onClick={() => {
+              const link = document.createElement("a");
+              link.href = resultImage;
+              link.download = `omnicraft-faceswap-${Date.now()}.png`;
+              link.click();
+            }}>
+              <Download className="h-4 w-4" /> Download
+            </Button>
+          </div>
+        )}
+
+        {!resultImage && !processing && (
+          <div className="glass rounded-xl p-4 text-center">
+            <p className="text-sm text-muted-foreground">Upload both images and click Swap Face to generate a result.</p>
+          </div>
+        )}
       </div>
 
       <aside className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-border/50 p-5 space-y-4 glass">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Loader2, Download, Film, ZoomIn } from "lucide-react";
+import { Sparkles, Loader2, Download, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,8 +27,8 @@ export default function VideoGenerator() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setResultImage(data.image);
-      toast.success("Cinematic frame generated!", {
-        description: data.message,
+      toast.success("Video frame generated!", {
+        description: "High-quality cinematic storyboard frame ready for production.",
       });
 
       if (user && data.image) {
@@ -37,8 +37,7 @@ export default function VideoGenerator() {
         await saveToHistory(user.id, "video-generator", prompt, finalUrl);
         await saveToMediaLibrary(user.id, prompt.slice(0, 50), "image", finalUrl, prompt, "video-generator");
       }
-    } catch (err: any) {
-      console.error(err);
+    } catch {
       toast.error("Generation failed. Please try again.", {
         description: "The AI model may be loading. Wait a moment and retry.",
       });
@@ -79,7 +78,7 @@ export default function VideoGenerator() {
             </Select>
             <Button onClick={handleGenerate} disabled={generating} className="gradient-primary text-primary-foreground border-0 glow-gradient gap-2 ml-auto">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {generating ? "Generating..." : "Generate Frame"}
+              {generating ? "Generating..." : "Generate Video Frame"}
             </Button>
           </div>
         </div>
@@ -100,9 +99,6 @@ export default function VideoGenerator() {
               <Button variant="outline" onClick={downloadImage} className="gap-2 border-border/50">
                 <Download className="h-4 w-4" /> Download Frame
               </Button>
-              <Button variant="outline" onClick={() => window.open(resultImage, "_blank")} className="gap-2 border-border/50">
-                <ZoomIn className="h-4 w-4" /> View Full Size
-              </Button>
             </div>
           </div>
         )}
@@ -113,7 +109,7 @@ export default function VideoGenerator() {
               <Film className="h-8 w-8 text-primary-foreground" />
             </div>
             <p className="text-muted-foreground">Describe your scene and click Generate</p>
-            <p className="text-xs text-muted-foreground mt-1">Generates high-quality cinematic storyboard frames</p>
+            <p className="text-xs text-muted-foreground mt-1">Generates cinematic storyboard frames via Stable Diffusion XL</p>
           </div>
         )}
       </div>

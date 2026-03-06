@@ -1,40 +1,100 @@
-import { useState } from "react";
-import { Play, Pause, SkipBack, SkipForward, Upload } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { Play, Pause, SkipBack, SkipForward, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 
 const presets = [
-  { name: "Cinematic", colors: ["#1a1a2e", "#e94560"] },
-  { name: "Vintage", colors: ["#d4a574", "#8b6f47"] },
-  { name: "Teal & Orange", colors: ["#008080", "#ff8c00"] },
-  { name: "Moody", colors: ["#2d1b69", "#11998e"] },
+  { name: "Cinematic", filter: "saturate(1.2) contrast(1.15) sepia(0.15) brightness(0.95)" },
+  { name: "Vintage", filter: "sepia(0.5) contrast(1.1) saturate(0.8) brightness(1.05)" },
+  { name: "Teal & Orange", filter: "hue-rotate(-15deg) saturate(1.4) contrast(1.1)" },
+  { name: "Moody", filter: "saturate(0.6) contrast(1.3) brightness(0.8)" },
 ];
 
 export default function VideoStudio() {
-  const [hasFile, setHasFile] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [timeline, setTimeline] = useState([30]);
+  const [timeline, setTimeline] = useState([0]);
   const [brightness, setBrightness] = useState([50]);
   const [contrast, setContrast] = useState([50]);
   const [saturation, setSaturation] = useState([50]);
   const [temperature, setTemperature] = useState([50]);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setHasFile(true);
+  const handleFileSelect = (file: File) => {
+    const url = URL.createObjectURL(file);
+    setVideoSrc(url);
+    setActivePreset(null);
     toast.success("Video loaded!");
   };
 
+  const getFilterString = () => {
+    if (activePreset) {
+      return presets.find((p) => p.name === activePreset)?.filter || "none";
+    }
+    const b = brightness[0] / 50;
+    const c = contrast[0] / 50;
+    const s = saturation[0] / 50;
+    const t = temperature[0] - 50;
+    return `brightness(${b}) contrast(${c}) saturate(${s}) hue-rotate(${t * 0.5}deg)`;
+  };
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    if (playing) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    setPlaying(!playing);
+  };
+
+  const handleTimeUpdate = () => {
+    if (!videoRef.current) return;
+    const pct = (videoRef.current.currentTime / (videoRef.current.duration || 1)) * 100;
+    setTimeline([pct]);
+  };
+
+  const handleSeek = (val: number[]) => {
+    if (!videoRef.current) return;
+    videoRef.current.currentTime = (val[0] / 100) * videoRef.current.duration;
+    setTimeline(val);
+  };
+
+  const applyPreset = (name: string) => {
+    setActivePreset(name === activePreset ? null : name);
+  };
+
+  const exportFrame = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.filter = getFilterString();
+    ctx.drawImage(video, 0, 0);
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `color-graded-frame-${Date.now()}.png`;
+    link.click();
+    toast.success("Color-graded frame exported!");
+  }, [activePreset, brightness, contrast, saturation, temperature]);
+
   return (
     <div className="flex flex-col lg:flex-row h-full animate-fade-in">
+      <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} />
+      <canvas ref={canvasRef} className="hidden" />
       <div className="flex-1 p-6 space-y-4 overflow-auto">
-        {!hasFile ? (
+        {!videoSrc ? (
           <div
             onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => setHasFile(true)}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f); }}
+            onClick={() => fileRef.current?.click()}
             className="border-2 border-dashed border-border/50 rounded-2xl flex flex-col items-center justify-center py-24 cursor-pointer hover:border-primary/50 transition-colors"
           >
             <div className="h-16 w-16 rounded-2xl glass flex items-center justify-center mb-4">
@@ -45,44 +105,51 @@ export default function VideoStudio() {
           </div>
         ) : (
           <>
-            {/* Video Player */}
-            <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted" />
-              <Button size="icon" variant="ghost" className="relative z-10 h-16 w-16 rounded-full glass glow-blue" onClick={() => setPlaying(!playing)}>
-                {playing ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7 ml-1" />}
-              </Button>
+            <div className="aspect-video bg-secondary rounded-xl overflow-hidden relative">
+              <video
+                ref={videoRef}
+                src={videoSrc}
+                className="w-full h-full object-contain"
+                style={{ filter: getFilterString() }}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={() => setPlaying(false)}
+                onClick={togglePlay}
+              />
+              {!playing && (
+                <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <div className="h-16 w-16 rounded-full glass flex items-center justify-center glow-blue">
+                    <Play className="h-7 w-7 ml-1 text-foreground" />
+                  </div>
+                </button>
+              )}
             </div>
 
-            {/* Timeline */}
             <div className="space-y-2">
-              <Slider value={timeline} onValueChange={setTimeline} max={100} className="w-full" />
+              <Slider value={timeline} onValueChange={handleSeek} max={100} className="w-full" />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <Button size="icon" variant="ghost" className="h-7 w-7"><SkipBack className="h-3 w-3" /></Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setPlaying(!playing)}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { if (videoRef.current) videoRef.current.currentTime = 0; }}><SkipBack className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={togglePlay}>
                     {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7"><SkipForward className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { if (videoRef.current) videoRef.current.currentTime = videoRef.current.duration; }}><SkipForward className="h-3 w-3" /></Button>
                 </div>
-                <span>00:{String(Math.floor(timeline[0] * 0.6)).padStart(2, "0")} / 01:00</span>
+                <Button variant="outline" size="sm" onClick={exportFrame} className="gap-1 border-border/50">
+                  <Download className="h-3 w-3" /> Export Frame
+                </Button>
               </div>
             </div>
 
-            {/* Color Grading Presets */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">AI Color Grading</h3>
+              <h3 className="text-sm font-semibold text-foreground">Color Grading Presets</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {presets.map((preset) => (
                   <button
                     key={preset.name}
-                    onClick={() => setActivePreset(preset.name)}
+                    onClick={() => applyPreset(preset.name)}
                     className={`glass rounded-xl p-3 text-left transition-all hover:scale-[1.03] ${activePreset === preset.name ? "ring-1 ring-primary glow-blue" : ""}`}
                   >
-                    <div className="flex gap-1 mb-2">
-                      {preset.colors.map((c) => (
-                        <div key={c} className="h-6 w-6 rounded-md" style={{ backgroundColor: c }} />
-                      ))}
-                    </div>
+                    <div className="h-8 w-full rounded-md bg-secondary mb-2" style={{ filter: preset.filter }} />
                     <span className="text-xs font-medium text-foreground">{preset.name}</span>
                   </button>
                 ))}
@@ -93,7 +160,7 @@ export default function VideoStudio() {
       </div>
 
       <aside className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-border/50 p-5 space-y-6 glass">
-        <h3 className="text-sm font-semibold text-foreground">Adjustments</h3>
+        <h3 className="text-sm font-semibold text-foreground">Manual Adjustments</h3>
         {[
           { label: "Brightness", value: brightness, set: setBrightness },
           { label: "Contrast", value: contrast, set: setContrast },
@@ -105,7 +172,7 @@ export default function VideoStudio() {
               <span className="text-muted-foreground">{ctrl.label}</span>
               <span className="text-foreground font-medium">{ctrl.value[0]}</span>
             </div>
-            <Slider value={ctrl.value} onValueChange={ctrl.set} max={100} />
+            <Slider value={ctrl.value} onValueChange={(v) => { ctrl.set(v); setActivePreset(null); }} max={100} />
           </div>
         ))}
       </aside>

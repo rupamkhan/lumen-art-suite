@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Sparkles, Bot, User } from "lucide-react";
+import { MessageCircle, X, Send, Sparkles, Bot, User, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
 
 interface Message {
   id: number;
@@ -15,6 +16,7 @@ export function AIChatAssistant() {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const constraintsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,7 +46,7 @@ export function AIChatAssistant() {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, role: "assistant", content: "Sorry, I couldn't connect. Please check your API keys in Settings." },
+        { id: Date.now() + 1, role: "assistant", content: "Sorry, I couldn't connect. Please try again later." },
       ]);
     } finally {
       setTyping(false);
@@ -53,6 +55,9 @@ export function AIChatAssistant() {
 
   return (
     <>
+      {/* Full-screen drag constraint area */}
+      <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-40" />
+
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -63,15 +68,25 @@ export function AIChatAssistant() {
       )}
 
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] glass rounded-2xl flex flex-col shadow-2xl border border-border/50 animate-fade-in">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+        <motion.div
+          drag
+          dragConstraints={constraintsRef}
+          dragMomentum={false}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] glass rounded-2xl flex flex-col shadow-2xl border border-border/50"
+          style={{ touchAction: "none" }}
+        >
+          {/* Drag handle header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 cursor-grab active:cursor-grabbing">
             <div className="flex items-center gap-2">
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
               <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-primary-foreground" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">OmniCraft AI Assistant</p>
-                <p className="text-[10px] text-muted-foreground">Powered by Groq LLaMA</p>
+                <p className="text-[10px] text-muted-foreground">Drag to reposition</p>
               </div>
             </div>
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setOpen(false)}>
@@ -126,7 +141,7 @@ export function AIChatAssistant() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 border-t border-border/50">
+          <div className="p-3 border-t border-border/50" onPointerDown={(e) => e.stopPropagation()}>
             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
               <input
                 value={input}
@@ -139,7 +154,7 @@ export function AIChatAssistant() {
               </Button>
             </form>
           </div>
-        </div>
+        </motion.div>
       )}
     </>
   );

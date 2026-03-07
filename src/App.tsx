@@ -19,6 +19,7 @@ import VideoGenerator from "./pages/VideoGenerator";
 import MusicGenerator from "./pages/MusicGenerator";
 import SongCreator from "./pages/SongCreator";
 import AutoSubtitles from "./pages/AutoSubtitles";
+import AutoCaption from "./pages/AutoCaption";
 import SfxSearch from "./pages/SfxSearch";
 import Settings from "./pages/Settings";
 import MyCreations from "./pages/MyCreations";
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/music-generator" element={<ProtectedRoute><MusicGenerator /></ProtectedRoute>} />
               <Route path="/song-creator" element={<ProtectedRoute><SongCreator /></ProtectedRoute>} />
               <Route path="/auto-subtitles" element={<ProtectedRoute><AutoSubtitles /></ProtectedRoute>} />
+              <Route path="/auto-caption" element={<ProtectedRoute><AutoCaption /></ProtectedRoute>} />
               <Route path="/sfx-search" element={<ProtectedRoute><SfxSearch /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/my-creations" element={<ProtectedRoute><MyCreations /></ProtectedRoute>} />

@@ -12,13 +12,14 @@ export default function VideoGenerator() {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("cinematic");
   const [generating, setGenerating] = useState(false);
-  const [resultImage, setResultImage] = useState<string | null>(null);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultType, setResultType] = useState<"video" | "image">("video");
   const { user } = useAuth();
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return toast.error("Please enter a prompt");
     setGenerating(true);
-    setResultImage(null);
+    setResultUrl(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-video", {
@@ -26,16 +27,18 @@ export default function VideoGenerator() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setResultImage(data.image);
-      toast.success("Video frame generated!", {
-        description: "High-quality cinematic storyboard frame ready for production.",
-      });
 
-      if (user && data.image) {
-        const cloudUrl = await uploadToCloudinary(data.image, "omnicraft/video-frames");
-        const finalUrl = cloudUrl || data.image;
+      const url = data.video || data.image;
+      const type = data.video ? "video" : "image";
+      setResultUrl(url);
+      setResultType(type);
+      toast.success(type === "video" ? "Video generated!" : "Cinematic frame generated!");
+
+      if (user && url) {
+        const cloudUrl = await uploadToCloudinary(url, "omnicraft/videos");
+        const finalUrl = cloudUrl || url;
         await saveToHistory(user.id, "video-generator", prompt, finalUrl);
-        await saveToMediaLibrary(user.id, prompt.slice(0, 50), "image", finalUrl, prompt, "video-generator");
+        await saveToMediaLibrary(user.id, prompt.slice(0, 50), type, finalUrl, prompt, "video-generator");
       }
     } catch {
       toast.error("Generation failed. Please try again.", {
@@ -46,11 +49,11 @@ export default function VideoGenerator() {
     }
   };
 
-  const downloadImage = () => {
-    if (!resultImage) return;
+  const downloadResult = () => {
+    if (!resultUrl) return;
     const link = document.createElement("a");
-    link.href = resultImage;
-    link.download = `omnicraft-video-frame-${Date.now()}.png`;
+    link.href = resultUrl;
+    link.download = `omnicraft-video-${Date.now()}.${resultType === "video" ? "mp4" : "png"}`;
     link.click();
   };
 
@@ -78,7 +81,7 @@ export default function VideoGenerator() {
             </Select>
             <Button onClick={handleGenerate} disabled={generating} className="gradient-primary text-primary-foreground border-0 glow-gradient gap-2 ml-auto">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {generating ? "Generating..." : "Generate Video Frame"}
+              {generating ? "Synthesizing Video..." : "Generate Video"}
             </Button>
           </div>
         </div>
@@ -86,30 +89,34 @@ export default function VideoGenerator() {
         {generating && (
           <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 animate-pulse">
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Generating your cinematic frame...</p>
+            <p className="text-sm text-muted-foreground">Synthesizing your video… this may take a moment</p>
           </div>
         )}
 
-        {resultImage && !generating && (
+        {resultUrl && !generating && (
           <div className="space-y-4">
             <div className="rounded-xl overflow-hidden border border-border/50">
-              <img src={resultImage} alt="Generated frame" className="w-full aspect-video object-cover" />
+              {resultType === "video" ? (
+                <video src={resultUrl} controls autoPlay loop className="w-full aspect-video object-cover" />
+              ) : (
+                <img src={resultUrl} alt="Generated frame" className="w-full aspect-video object-cover" />
+              )}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={downloadImage} className="gap-2 border-border/50">
-                <Download className="h-4 w-4" /> Download Frame
+              <Button variant="outline" onClick={downloadResult} className="gap-2 border-border/50">
+                <Download className="h-4 w-4" /> Download {resultType === "video" ? "Video" : "Frame"}
               </Button>
             </div>
           </div>
         )}
 
-        {!generating && !resultImage && (
+        {!generating && !resultUrl && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center mb-4 opacity-50">
               <Film className="h-8 w-8 text-primary-foreground" />
             </div>
             <p className="text-muted-foreground">Describe your scene and click Generate</p>
-            <p className="text-xs text-muted-foreground mt-1">Generates cinematic storyboard frames via Stable Diffusion XL</p>
+            <p className="text-xs text-muted-foreground mt-1">Generates video via AI text-to-video pipeline</p>
           </div>
         )}
       </div>
@@ -117,9 +124,9 @@ export default function VideoGenerator() {
       <aside className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-border/50 p-5 space-y-4 glass">
         <h3 className="text-sm font-semibold text-foreground">Video Settings</h3>
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Model</span><span className="text-foreground">SDXL Cinematic</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Output</span><span className="text-foreground">Storyboard Frame</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Quality</span><span className="text-foreground">4K</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Model</span><span className="text-foreground">AI Video Gen</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Output</span><span className="text-foreground">MP4 / Frame</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Quality</span><span className="text-foreground">HD</span></div>
         </div>
       </aside>
     </div>

@@ -1,4 +1,4 @@
-import { ArrowRight, Image, Film, Music, Music2, Mic, Search, Sparkles, Eraser, ZoomIn, Users, Subtitles, Volume2 } from "lucide-react";
+import { ArrowRight, Image, Film, Music, Music2, Mic, Search, Sparkles, Eraser, ZoomIn, Users, Subtitles, Volume2, Type } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -31,6 +31,7 @@ const toolSections = [
     label: "Editing & Assets",
     tools: [
       { title: "Auto Subtitles", desc: "Generate accurate subtitles with AI", icon: Subtitles, route: "/auto-subtitles", gradient: "from-sky-500 to-indigo-500" },
+      { title: "Auto Caption", desc: "CapCut-style animated captions for Shorts", icon: Type, route: "/auto-caption", gradient: "from-pink-400 to-yellow-400" },
       { title: "Stock Footage", desc: "Browse HD & 4K stock footage and images", icon: Search, route: "/stock-assets", gradient: "from-amber-500 to-rose-500" },
       { title: "SFX Search", desc: "Find and preview sound effects", icon: Volume2, route: "/sfx-search", gradient: "from-lime-500 to-emerald-500" },
     ],

@@ -30,8 +30,44 @@ serve(async (req) => {
     const HF_KEY = Deno.env.get("HUGGINGFACE_API_KEY");
     if (!HF_KEY) throw new Error("HUGGINGFACE_API_KEY not configured");
 
-    const fullPrompt = `${prompt}, ${style || "cinematic"} style, high quality, 4K, ultra detailed, movie still, widescreen 16:9`;
+    // Try text-to-video model first (ali-vilab/text-to-video-ms-1.7b)
+    try {
+      console.log("Attempting text-to-video generation...");
+      const videoResponse = await fetch("https://router.huggingface.co/hf-inference/models/ali-vilab/text-to-video-ms-1.7b", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: `${prompt}, ${style || "cinematic"} style, high quality` }),
+      });
 
+      if (videoResponse.ok) {
+        const contentType = videoResponse.headers.get("content-type") || "";
+        if (contentType.includes("video") || contentType.includes("mp4")) {
+          const videoBlob = new Uint8Array(await videoResponse.arrayBuffer());
+          let binary = "";
+          const chunkSize = 8192;
+          for (let i = 0; i < videoBlob.length; i += chunkSize) {
+            const chunk = videoBlob.subarray(i, Math.min(i + chunkSize, videoBlob.length));
+            for (let j = 0; j < chunk.length; j++) {
+              binary += String.fromCharCode(chunk[j]);
+            }
+          }
+          const base64 = btoa(binary);
+          return new Response(JSON.stringify({
+            video: `data:video/mp4;base64,${base64}`,
+            type: "video",
+            message: "Generated a video from your prompt."
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+      console.log("Video model not available, falling back to image generation");
+    } catch (e) {
+      console.log("Video generation attempt failed, falling back:", e);
+    }
+
+    // Fallback: Generate high-quality cinematic frame via SDXL
+    const fullPrompt = `${prompt}, ${style || "cinematic"} style, high quality, 4K, ultra detailed, movie still, widescreen 16:9`;
     const response = await fetch("https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0", {
       method: "POST",
       headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" },
@@ -39,14 +75,18 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      console.error("HF video error:", response.status, await response.text());
-      throw new Error("Video frame generation failed");
+      console.error("HF error:", response.status, await response.text());
+      throw new Error("Generation failed");
     }
 
     const imageBlob = new Uint8Array(await response.arrayBuffer());
     let binary = "";
-    for (let i = 0; i < imageBlob.length; i++) {
-      binary += String.fromCharCode(imageBlob[i]);
+    const chunkSize = 8192;
+    for (let i = 0; i < imageBlob.length; i += chunkSize) {
+      const chunk = imageBlob.subarray(i, Math.min(i + chunkSize, imageBlob.length));
+      for (let j = 0; j < chunk.length; j++) {
+        binary += String.fromCharCode(chunk[j]);
+      }
     }
     const base64 = btoa(binary);
 

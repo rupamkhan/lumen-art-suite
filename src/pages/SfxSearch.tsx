@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Search, Play, Pause, Download, Volume2, Loader2 } from "lucide-react";
+import { Search, Download, Volume2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,17 +18,14 @@ interface SfxResult {
 
 export default function SfxSearch() {
   const [query, setQuery] = useState("");
-  const [playingId, setPlayingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SfxResult[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setResults([]);
-    stopAudio();
 
     try {
       const { data, error } = await supabase.functions.invoke("search-stock", {
@@ -54,28 +51,6 @@ export default function SfxSearch() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-    }
-    setPlayingId(null);
-  };
-
-  const togglePlay = (sfx: SfxResult) => {
-    if (playingId === sfx.id) {
-      stopAudio();
-      return;
-    }
-    stopAudio();
-    const audio = new Audio(sfx.audioUrl);
-    audio.onended = () => setPlayingId(null);
-    audio.onerror = () => { toast.error("Cannot play this audio"); setPlayingId(null); };
-    audio.play().catch(() => toast.error("Cannot play this audio"));
-    audioRef.current = audio;
-    setPlayingId(sfx.id);
   };
 
   const handleDownload = async (sfx: SfxResult) => {
@@ -109,41 +84,25 @@ export default function SfxSearch() {
         {!loading && results.length > 0 && (
           <div className="space-y-2">
             {results.map((sfx) => (
-              <div key={sfx.id} className="glass rounded-xl p-4 flex items-center gap-4 group hover:border-primary/50 transition-colors">
-                {/* Thumbnail */}
-                {sfx.thumbnail && (
-                  <img src={sfx.thumbnail} alt={sfx.name} className="h-12 w-16 rounded-lg object-cover shrink-0 border border-border/50" />
-                )}
-
-                {/* Play button */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-10 w-10 shrink-0 glass"
-                  onClick={() => togglePlay(sfx)}
-                >
-                  {playingId === sfx.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-                </Button>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{sfx.name}</p>
-                  <p className="text-xs text-muted-foreground">{sfx.category} · {sfx.duration}</p>
+              <div key={sfx.id} className="glass rounded-xl p-4 space-y-3 hover:border-primary/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  {sfx.thumbnail && (
+                    <img src={sfx.thumbnail} alt={sfx.name} className="h-12 w-16 rounded-lg object-cover shrink-0 border border-border/50" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{sfx.name}</p>
+                    <p className="text-xs text-muted-foreground">{sfx.category} · {sfx.duration}</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1 border-border/50 shrink-0" onClick={() => handleDownload(sfx)}>
+                    <Download className="h-3 w-3" /> Download
+                  </Button>
                 </div>
-
-                {/* Inline waveform visualizer */}
-                <div className="hidden sm:flex items-end gap-[1px] h-8 flex-1 max-w-[200px]">
-                  {Array.from({ length: 40 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-0.5 rounded-full transition-all duration-150 ${playingId === sfx.id ? "gradient-primary animate-pulse" : "bg-muted-foreground/30"}`}
-                      style={{ height: `${Math.sin(i * 0.3 + sfx.id) * 40 + 50}%` }}
-                    />
-                  ))}
-                </div>
-
-                <Button variant="outline" size="sm" className="gap-1 border-border/50 shrink-0" onClick={() => handleDownload(sfx)}>
-                  <Download className="h-3 w-3" /> Download
-                </Button>
+                {/* Inline audio player */}
+                <audio controls preload="none" className="w-full h-8 [&::-webkit-media-controls-panel]:bg-secondary/80 rounded">
+                  <source src={sfx.audioUrl} type="audio/mpeg" />
+                  <source src={sfx.audioUrl} type="video/mp4" />
+                  Your browser does not support the audio element.
+                </audio>
               </div>
             ))}
           </div>

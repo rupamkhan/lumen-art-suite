@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Download, Loader2, Save } from "lucide-react";
+import { useState, useRef } from "react";
+import { Search, Download, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ interface StockResult {
   photographer: string;
   width: number;
   height: number;
+  videoUrl?: string;
 }
 
 const filters = ["All", "Images", "Videos"];
@@ -26,6 +27,7 @@ export default function StockAssets() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<StockResult[]>([]);
   const { user } = useAuth();
+  const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -33,14 +35,26 @@ export default function StockAssets() {
     setResults([]);
 
     try {
-      const type = activeFilter === "Videos" ? "video" : "image";
+      const type = activeFilter === "Videos" ? "video" : activeFilter === "Images" ? "image" : "image";
       const { data, error } = await supabase.functions.invoke("search-stock", {
         body: { query, type, page: 1 },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setResults(data?.results || []);
-      if (!data?.results?.length) toast.info("No results found. Try a different search term.");
+
+      // If "All", also fetch videos
+      let allResults = data?.results || [];
+      if (activeFilter === "All") {
+        const { data: vData } = await supabase.functions.invoke("search-stock", {
+          body: { query, type: "video", page: 1 },
+        });
+        if (vData?.results) {
+          allResults = [...allResults, ...vData.results];
+        }
+      }
+
+      setResults(allResults);
+      if (!allResults.length) toast.info("No results found. Try a different search term.");
     } catch (err: any) {
       toast.error(err.message || "Search failed. Please try again.");
     } finally {
@@ -56,6 +70,14 @@ export default function StockAssets() {
       toast.success("Saved to your library!");
     } catch {
       toast.error("Failed to save");
+    }
+  };
+
+  const handleVideoHover = (id: number, play: boolean) => {
+    const vid = videoRefs.current.get(id);
+    if (vid) {
+      if (play) vid.play().catch(() => {});
+      else { vid.pause(); vid.currentTime = 0; }
     }
   };
 
@@ -101,8 +123,37 @@ export default function StockAssets() {
       {results.length > 0 && !loading && (
         <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 space-y-4">
           {results.map((asset) => (
-            <div key={asset.id} className="w-full rounded-xl relative group overflow-hidden cursor-pointer break-inside-avoid border border-border/50">
-              <img src={asset.thumbnail} alt={`Stock ${asset.type}`} className="w-full object-cover rounded-xl" loading="lazy" />
+            <div
+              key={`${asset.type}-${asset.id}`}
+              className="w-full rounded-xl relative group overflow-hidden cursor-pointer break-inside-avoid border border-border/50"
+              onMouseEnter={() => asset.type === "video" && handleVideoHover(asset.id, true)}
+              onMouseLeave={() => asset.type === "video" && handleVideoHover(asset.id, false)}
+            >
+              {asset.type === "video" && asset.videoUrl ? (
+                <video
+                  ref={(el) => { if (el) videoRefs.current.set(asset.id, el); }}
+                  src={asset.videoUrl}
+                  poster={asset.thumbnail}
+                  muted
+                  loop
+                  playsInline
+                  preload="none"
+                  className="w-full object-cover rounded-xl"
+                />
+              ) : asset.type === "video" ? (
+                <video
+                  ref={(el) => { if (el) videoRefs.current.set(asset.id, el); }}
+                  src={asset.url}
+                  poster={asset.thumbnail}
+                  muted
+                  loop
+                  playsInline
+                  preload="none"
+                  className="w-full object-cover rounded-xl"
+                />
+              ) : (
+                <img src={asset.thumbnail} alt={`Stock ${asset.type}`} className="w-full object-cover rounded-xl" loading="lazy" />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
                 <span className="text-xs font-medium bg-secondary/80 px-2 py-0.5 rounded text-foreground">{asset.photographer}</span>
                 <div className="flex gap-1">

@@ -15,6 +15,7 @@ import {
   Volume2,
   Clock,
   LogOut,
+  Type,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -37,43 +38,46 @@ const navGroups = [
   {
     label: null,
     items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "My Creations", url: "/my-creations", icon: Clock },
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, gradient: "from-blue-400 to-cyan-400" },
+      { title: "My Creations", url: "/my-creations", icon: Clock, gradient: "from-amber-400 to-orange-500" },
     ],
   },
   {
     label: "IMAGE STUDIO",
     items: [
-      { title: "AI Image Generator", url: "/image-studio", icon: Image },
-      { title: "Background Remover", url: "/bg-remover", icon: Eraser },
-      { title: "Image Upscaler", url: "/image-upscaler", icon: ZoomIn },
-      { title: "Face Swap", url: "/face-swap", icon: Users },
+      { title: "AI Image Generator", url: "/image-studio", icon: Image, gradient: "from-blue-500 to-purple-500" },
+      { title: "Background Remover", url: "/bg-remover", icon: Eraser, gradient: "from-pink-500 to-rose-500" },
+      { title: "Image Upscaler", url: "/image-upscaler", icon: ZoomIn, gradient: "from-cyan-400 to-blue-500" },
+      { title: "Face Swap", url: "/face-swap", icon: Users, gradient: "from-violet-500 to-purple-500" },
     ],
   },
   {
     label: "VIDEO & MOTION",
     items: [
-      { title: "AI Video Generator", url: "/video-generator", icon: Sparkles },
-      { title: "Video Color Grading", url: "/video-studio", icon: Film },
+      { title: "AI Video Generator", url: "/video-generator", icon: Sparkles, gradient: "from-emerald-400 to-teal-500" },
+      { title: "Video Color Grading", url: "/video-studio", icon: Film, gradient: "from-emerald-500 to-blue-500" },
     ],
   },
   {
     label: "AUDIO & MUSIC",
     items: [
-      { title: "AI Music Generator", url: "/music-generator", icon: Music },
-      { title: "Full Song Creator", url: "/song-creator", icon: Music2 },
-      { title: "Voice Enhancement", url: "/audio-studio", icon: Mic },
+      { title: "AI Music Generator", url: "/music-generator", icon: Music, gradient: "from-orange-400 to-amber-500" },
+      { title: "Full Song Creator", url: "/song-creator", icon: Music2, gradient: "from-red-500 to-pink-500" },
+      { title: "Voice Enhancement", url: "/audio-studio", icon: Mic, gradient: "from-purple-500 to-pink-500" },
     ],
   },
   {
     label: "EDITING",
-    items: [{ title: "Auto Subtitles", url: "/auto-subtitles", icon: Subtitles }],
+    items: [
+      { title: "Auto Subtitles", url: "/auto-subtitles", icon: Subtitles, gradient: "from-sky-400 to-indigo-500" },
+      { title: "Auto Caption", url: "/auto-caption", icon: Type, gradient: "from-pink-400 to-yellow-400" },
+    ],
   },
   {
     label: "STOCK ASSETS",
     items: [
-      { title: "Stock Footage", url: "/stock-assets", icon: Search },
-      { title: "SFX Search", url: "/sfx-search", icon: Volume2 },
+      { title: "Stock Footage", url: "/stock-assets", icon: Search, gradient: "from-amber-400 to-rose-500" },
+      { title: "SFX Search", url: "/sfx-search", icon: Volume2, gradient: "from-lime-400 to-emerald-500" },
     ],
   },
 ];
@@ -123,7 +127,9 @@ export function AppSidebar() {
                         className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground text-sm"
                         activeClassName="bg-secondary text-foreground glow-blue sidebar-active-bar"
                       >
-                        <item.icon className="h-4 w-4 shrink-0" />
+                        <div className={`h-5 w-5 rounded-md bg-gradient-to-br ${item.gradient} flex items-center justify-center shrink-0`}>
+                          <item.icon className="h-3 w-3 text-white" />
+                        </div>
                         <span>{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>

@@ -6,6 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    for (let j = 0; j < chunk.length; j++) {
+      binary += String.fromCharCode(chunk[j]);
+    }
+  }
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -30,43 +42,41 @@ serve(async (req) => {
     const HF_KEY = Deno.env.get("HUGGINGFACE_API_KEY");
     if (!HF_KEY) throw new Error("HUGGINGFACE_API_KEY not configured");
 
-    // Try text-to-video model first (ali-vilab/text-to-video-ms-1.7b)
+    const styledPrompt = `${prompt}, ${style || "cinematic"} style, high quality`;
+
+    // Try text-to-video model
+    console.log("Attempting text-to-video generation with ali-vilab...");
     try {
-      console.log("Attempting text-to-video generation...");
       const videoResponse = await fetch("https://router.huggingface.co/hf-inference/models/ali-vilab/text-to-video-ms-1.7b", {
         method: "POST",
         headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: `${prompt}, ${style || "cinematic"} style, high quality` }),
+        body: JSON.stringify({ inputs: styledPrompt }),
       });
 
       if (videoResponse.ok) {
         const contentType = videoResponse.headers.get("content-type") || "";
-        if (contentType.includes("video") || contentType.includes("mp4")) {
-          const videoBlob = new Uint8Array(await videoResponse.arrayBuffer());
-          let binary = "";
-          const chunkSize = 8192;
-          for (let i = 0; i < videoBlob.length; i += chunkSize) {
-            const chunk = videoBlob.subarray(i, Math.min(i + chunkSize, videoBlob.length));
-            for (let j = 0; j < chunk.length; j++) {
-              binary += String.fromCharCode(chunk[j]);
-            }
-          }
-          const base64 = btoa(binary);
+        const rawBytes = new Uint8Array(await videoResponse.arrayBuffer());
+        
+        if (rawBytes.length > 1000 && (contentType.includes("video") || contentType.includes("mp4") || contentType.includes("octet-stream"))) {
+          console.log(`Video generated successfully: ${rawBytes.length} bytes, content-type: ${contentType}`);
+          const base64 = uint8ToBase64(rawBytes);
           return new Response(JSON.stringify({
             video: `data:video/mp4;base64,${base64}`,
             type: "video",
-            message: "Generated a video from your prompt."
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+        console.log(`Response not video: content-type=${contentType}, size=${rawBytes.length}`);
+      } else {
+        console.log("Video model response:", videoResponse.status);
       }
-      console.log("Video model not available, falling back to image generation");
     } catch (e) {
-      console.log("Video generation attempt failed, falling back:", e);
+      console.log("Video generation attempt failed:", e);
     }
 
-    // Fallback: Generate high-quality cinematic frame via SDXL
+    // Fallback: Generate cinematic frame via SDXL
+    console.log("Falling back to SDXL cinematic frame...");
     const fullPrompt = `${prompt}, ${style || "cinematic"} style, high quality, 4K, ultra detailed, movie still, widescreen 16:9`;
     const response = await fetch("https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0", {
       method: "POST",
@@ -75,31 +85,23 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      console.error("HF error:", response.status, await response.text());
+      console.error("SDXL error:", response.status, await response.text());
       throw new Error("Generation failed");
     }
 
     const imageBlob = new Uint8Array(await response.arrayBuffer());
-    let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < imageBlob.length; i += chunkSize) {
-      const chunk = imageBlob.subarray(i, Math.min(i + chunkSize, imageBlob.length));
-      for (let j = 0; j < chunk.length; j++) {
-        binary += String.fromCharCode(chunk[j]);
-      }
-    }
-    const base64 = btoa(binary);
+    const base64 = uint8ToBase64(imageBlob);
 
     return new Response(JSON.stringify({
       image: `data:image/png;base64,${base64}`,
       type: "storyboard_frame",
-      message: "Generated a cinematic storyboard frame from your prompt."
+      message: "Video model unavailable — generated a cinematic storyboard frame instead."
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("generate-video error:", e);
-    return new Response(JSON.stringify({ error: "Service temporarily unavailable" }), {
+    return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please retry in 30s." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

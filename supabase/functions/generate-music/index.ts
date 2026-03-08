@@ -32,31 +32,60 @@ serve(async (req) => {
 
     const fullPrompt = [prompt, genre, mood].filter(Boolean).join(", ");
 
-    const response = await fetch("https://router.huggingface.co/hf-inference/models/facebook/musicgen-small", {
+    // Use musicgen-medium for higher quality output
+    const response = await fetch("https://router.huggingface.co/hf-inference/models/facebook/musicgen-medium", {
       method: "POST",
       headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ inputs: fullPrompt }),
     });
 
     if (!response.ok) {
-      console.error("HF music error:", response.status, await response.text());
+      const errText = await response.text();
+      console.error("HF music error:", response.status, errText);
+      
+      // If medium model is loading, fall back to small
+      if (response.status === 503) {
+        console.log("musicgen-medium loading, trying musicgen-small fallback...");
+        const fallback = await fetch("https://router.huggingface.co/hf-inference/models/facebook/musicgen-small", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs: fullPrompt }),
+        });
+        if (!fallback.ok) {
+          console.error("Fallback also failed:", fallback.status);
+          throw new Error("Music generation failed - models loading");
+        }
+        const audioBlob = new Uint8Array(await fallback.arrayBuffer());
+        const base64 = uint8ToBase64(audioBlob);
+        return new Response(JSON.stringify({ audio: `data:audio/wav;base64,${base64}` }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error("Music generation failed");
     }
 
     const audioBlob = new Uint8Array(await response.arrayBuffer());
-    let binary = "";
-    for (let i = 0; i < audioBlob.length; i++) {
-      binary += String.fromCharCode(audioBlob[i]);
-    }
-    const base64 = btoa(binary);
+    const base64 = uint8ToBase64(audioBlob);
 
     return new Response(JSON.stringify({ audio: `data:audio/wav;base64,${base64}` }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("generate-music error:", e);
-    return new Response(JSON.stringify({ error: "Service temporarily unavailable" }), {
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Service temporarily unavailable" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    for (let j = 0; j < chunk.length; j++) {
+      binary += String.fromCharCode(chunk[j]);
+    }
+  }
+  return btoa(binary);
+}

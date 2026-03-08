@@ -95,19 +95,24 @@ export default function SongCreator() {
 
         {audioSrc && !generating && (
           <div className="glass rounded-xl p-6 space-y-4">
-            <audio ref={audioRef} src={audioSrc} onEnded={() => setPlaying(false)} />
+            {/* Native HTML5 audio player for real-time playback */}
+            <audio
+              ref={audioRef}
+              controls
+              src={audioSrc}
+              onEnded={() => setPlaying(false)}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              className="w-full"
+            />
             <div className="flex items-end justify-center gap-[2px] h-24">
               {Array.from({ length: 80 }).map((_, i) => (
                 <div key={i} className="w-1 rounded-full gradient-primary transition-opacity" style={{ height: `${Math.sin(i * 0.2) * 40 + 50}%`, opacity: playing ? 1 : 0.5 }} />
               ))}
             </div>
-            <div className="flex items-center gap-3">
-              <Button size="icon" variant="ghost" className="glass h-10 w-10" onClick={togglePlay}>
-                {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-              </Button>
-              <div className="flex-1 h-1 bg-secondary rounded-full"><div className="w-1/3 h-full gradient-primary rounded-full" /></div>
+            <div className="flex justify-end">
               <Button variant="outline" size="sm" onClick={downloadAudio} className="gap-1 border-border/50">
-                <Download className="h-3 w-3" /> Export
+                <Download className="h-3 w-3" /> Export WAV
               </Button>
             </div>
           </div>
